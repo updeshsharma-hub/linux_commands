@@ -1,0 +1,295 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Linux Command Cyber Dashboard</title>
+
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&family=Fira+Code:wght@400;500&display=swap" rel="stylesheet">
+
+<style>
+:root{
+    --bg1:#0f0c29;
+    --bg2:#302b63;
+    --bg3:#24243e;
+    --glass:rgba(255,255,255,0.05);
+    --border:rgba(255,255,255,0.1);
+    --accent:#8b5cf6;
+    --accent2:#00f5ff;
+    --text:#e5e7eb;
+}
+
+*{margin:0;padding:0;box-sizing:border-box;}
+
+body{
+    font-family:'Inter',sans-serif;
+    background:linear-gradient(135deg,var(--bg1),var(--bg2),var(--bg3));
+    color:var(--text);
+    min-height:100vh;
+}
+
+/* Header */
+header{
+    padding:20px;
+    text-align:center;
+}
+header h1{
+    font-size:28px;
+    background:linear-gradient(90deg,var(--accent),var(--accent2));
+    -webkit-background-clip:text;
+    -webkit-text-fill-color:transparent;
+}
+.search{
+    margin-top:15px;
+}
+.search input{
+    width:100%;
+    max-width:400px;
+    padding:10px;
+    border-radius:8px;
+    border:1px solid var(--border);
+    background:var(--glass);
+    color:white;
+}
+
+/* Layout */
+.container{
+    display:flex;
+    gap:20px;
+    padding:20px;
+}
+
+/* Sidebar */
+.sidebar{
+    width:220px;
+}
+.sidebar h3{
+    margin-bottom:10px;
+}
+.category{
+    padding:8px;
+    margin-bottom:6px;
+    border-radius:6px;
+    cursor:pointer;
+    background:var(--glass);
+    border:1px solid var(--border);
+    transition:0.3s;
+}
+.category:hover,
+.category.active{
+    background:var(--accent);
+}
+
+/* Main */
+.main{
+    flex:1;
+}
+
+/* Cards */
+.grid{
+    display:grid;
+    grid-template-columns:repeat(auto-fit,minmax(280px,1fr));
+    gap:20px;
+}
+
+.card{
+    background:var(--glass);
+    backdrop-filter:blur(12px);
+    padding:15px;
+    border-radius:12px;
+    border:1px solid var(--border);
+    transition:0.3s;
+    position:relative;
+}
+.card:hover{
+    transform:translateY(-5px);
+    border-color:var(--accent2);
+}
+.card h3{
+    font-family:'Fira Code',monospace;
+    color:var(--accent2);
+}
+.badge{
+    font-size:12px;
+    padding:2px 6px;
+    border-radius:4px;
+    margin-left:5px;
+}
+.beginner{background:#16a34a;}
+.intermediate{background:#f59e0b;}
+.advanced{background:#dc2626;}
+
+.code{
+    background:#000;
+    padding:6px;
+    border-radius:6px;
+    margin-top:6px;
+    font-family:'Fira Code',monospace;
+    color:var(--accent);
+}
+
+button{
+    margin-top:8px;
+    margin-right:6px;
+    padding:5px 8px;
+    border:none;
+    border-radius:6px;
+    cursor:pointer;
+    background:var(--accent);
+    color:white;
+    font-size:12px;
+}
+
+.details{
+    display:none;
+    margin-top:8px;
+    font-size:13px;
+    opacity:0.8;
+}
+
+/* Toast */
+.toast{
+    position:fixed;
+    bottom:20px;
+    right:20px;
+    background:var(--accent2);
+    padding:10px 15px;
+    border-radius:6px;
+    display:none;
+}
+
+/* Responsive */
+@media(max-width:900px){
+    .container{flex-direction:column;}
+    .sidebar{width:100%;display:flex;flex-wrap:wrap;gap:6px;}
+}
+</style>
+</head>
+<body>
+
+<header>
+<h1>Linux Command Cyber Dashboard</h1>
+<div class="search">
+<input type="text" id="search" placeholder="Search commands...">
+</div>
+<p>Total Commands: <span id="count"></span></p>
+<button onclick="randomTip()">Show Random Linux Tip</button>
+<p id="tip" style="margin-top:8px;color:#00f5ff;"></p>
+</header>
+
+<div class="container">
+<div class="sidebar">
+<h3>Categories</h3>
+<div class="category active" data-cat="All">All</div>
+<div class="category" data-cat="File">File</div>
+<div class="category" data-cat="Network">Network</div>
+<div class="category" data-cat="System">System</div>
+<div class="category" data-cat="Permissions">Permissions</div>
+</div>
+
+<div class="main">
+<div class="grid" id="grid"></div>
+</div>
+</div>
+
+<div class="toast" id="toast">Copied!</div>
+
+<script>
+const commands=[
+{name:"ls",cat:"File",level:"Beginner",desc:"List directory contents",syntax:"ls -la"},
+{name:"cd",cat:"File",level:"Beginner",desc:"Change directory",syntax:"cd /home"},
+{name:"grep",cat:"File",level:"Intermediate",desc:"Search inside files",syntax:"grep 'text' file"},
+{name:"find",cat:"File",level:"Advanced",desc:"Find files in system",syntax:"find / -name file"},
+{name:"ping",cat:"Network",level:"Beginner",desc:"Test connectivity",syntax:"ping google.com"},
+{name:"ssh",cat:"Network",level:"Intermediate",desc:"Remote login",syntax:"ssh user@ip"},
+{name:"netstat",cat:"Network",level:"Advanced",desc:"Network stats",syntax:"netstat -tulnp"},
+{name:"top",cat:"System",level:"Beginner",desc:"Show running processes",syntax:"top"},
+{name:"htop",cat:"System",level:"Intermediate",desc:"Interactive process viewer",syntax:"htop"},
+{name:"df",cat:"System",level:"Beginner",desc:"Disk usage",syntax:"df -h"},
+{name:"free",cat:"System",level:"Beginner",desc:"Memory usage",syntax:"free -m"},
+{name:"uname",cat:"System",level:"Beginner",desc:"System info",syntax:"uname -a"},
+{name:"chmod",cat:"Permissions",level:"Intermediate",desc:"Change permissions",syntax:"chmod 755 file"},
+{name:"chown",cat:"Permissions",level:"Intermediate",desc:"Change ownership",syntax:"chown user file"},
+{name:"sudo",cat:"Permissions",level:"Beginner",desc:"Run as root",syntax:"sudo apt update"}
+];
+
+let active="All";
+let bookmarks=JSON.parse(localStorage.getItem("bookmarks"))||[];
+
+const grid=document.getElementById("grid");
+const search=document.getElementById("search");
+const toast=document.getElementById("toast");
+
+function render(){
+grid.innerHTML="";
+document.getElementById("count").textContent=commands.length;
+
+commands.filter(c=>
+(active==="All"||c.cat===active)&&
+(c.name.includes(search.value.toLowerCase())||
+c.desc.toLowerCase().includes(search.value.toLowerCase()))
+).forEach(c=>{
+const card=document.createElement("div");
+card.className="card";
+card.innerHTML=`
+<h3>${c.name}
+<span class="badge ${c.level.toLowerCase()}">${c.level}</span>
+</h3>
+<p>${c.desc}</p>
+<div class="code">${c.syntax}</div>
+<button onclick="copyCmd('${c.syntax}')">Copy</button>
+<button onclick="toggleDetails(this)">Details</button>
+<button onclick="bookmark('${c.name}')">☆</button>
+<div class="details">Category: ${c.cat}</div>
+`;
+grid.appendChild(card);
+});
+}
+
+function copyCmd(text){
+navigator.clipboard.writeText(text);
+toast.style.display="block";
+setTimeout(()=>toast.style.display="none",1500);
+}
+
+function toggleDetails(btn){
+const details=btn.parentElement.querySelector(".details");
+details.style.display=details.style.display==="block"?"none":"block";
+}
+
+function bookmark(name){
+if(!bookmarks.includes(name)){
+bookmarks.push(name);
+localStorage.setItem("bookmarks",JSON.stringify(bookmarks));
+alert("Bookmarked "+name);
+}
+}
+
+search.addEventListener("input",render);
+
+document.querySelectorAll(".category").forEach(cat=>{
+cat.addEventListener("click",()=>{
+document.querySelectorAll(".category").forEach(c=>c.classList.remove("active"));
+cat.classList.add("active");
+active=cat.dataset.cat;
+render();
+});
+});
+
+function randomTip(){
+const tips=[
+"Use Ctrl + R to search command history.",
+"Use sudo !! to rerun last command as root.",
+"Use history to see past commands.",
+"Use man <command> to read manual.",
+"Use clear to clean terminal."
+];
+document.getElementById("tip").textContent=
+tips[Math.floor(Math.random()*tips.length)];
+}
+
+render();
+</script>
+
+</body>
+</html>
